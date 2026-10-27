@@ -1,0 +1,33 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Moeda Estudantil{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'cadastros/style.css' %}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{% url 'inicio' %}"><span class="brand-icon" aria-hidden="true">m</span> moeda<span class="brand-light">estudantil</span></a>
+    <nav aria-label="Navegação principal">
+      {% if user.is_staff %}
+        <a href="{% url 'lista' 'alunos' %}">Alunos</a>
+        <a href="{% url 'lista' 'empresas' %}">Empresas</a>
+        <a href="{% url 'admin:cadastros_instituicaoensino_changelist' %}">Instituições</a>
+      {% endif %}
+      {% if user.is_authenticated %}
+        <span class="user-name">{{ user.username }}</span>
+        <form method="post" action="{% url 'logout' %}" class="inline">{% csrf_token %}<button class="nav-button" type="submit">Sair</button></form>
+      {% else %}
+        <a class="button small secondary" href="{% url 'login' %}">Entrar na conta <span aria-hidden="true">↗</span></a>
+      {% endif %}
+    </nav>
+  </header>
+  <main id="conteudo" class="container">
+    {% if messages %}<div class="messages" aria-live="polite">{% for message in messages %}<div class="message {{ message.tags }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="footer"><span>Moeda Estudantil</span><span>Conectando educação e reconhecimento.</span></footer>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{% extends 'cadastros/base.html' %}
+{% block title %}{{ plural }} · Moeda Estudantil{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'inicio' %}">← Visão geral</a>
+<div class="heading-row"><div class="page-heading"><span class="eyebrow">GESTÃO DE CADASTROS</span><h1>{{ plural }}</h1><p>Consulte e gerencie os participantes do programa.</p></div><a class="button" href="{% url 'criar' tipo %}">+ Cadastrar {{ singular }}</a></div>
+<section class="panel">
+  <form method="get" class="search"><label for="busca" class="sr-only">Buscar {{ plural }}</label><input class="input" id="busca" name="q" value="{{ busca }}" placeholder="Buscar por nome, e-mail ou login{% if tipo == 'alunos' %}, CPF, curso ou instituição{% endif %}"><button class="button secondary" type="submit">Buscar</button>{% if busca %}<a href="{% url 'lista' tipo %}">Limpar</a>{% endif %}</form>
+  <div class="list-caption"><span>{{ pagina.paginator.count }} cadastro{{ pagina.paginator.count|pluralize }} encontrado{{ pagina.paginator.count|pluralize }}</span></div>
+  {% if pagina %}
+  <div class="table-wrap"><table><thead><tr><th scope="col">{% if tipo == 'alunos' %}Aluno{% else %}Empresa{% endif %}</th><th scope="col">Contato</th><th scope="col">{% if tipo == 'alunos' %}Instituição / Curso{% else %}Login{% endif %}</th><th scope="col">Ações</th></tr></thead><tbody>
+  {% for registro in pagina %}<tr><td><strong>{{ registro.usuario.nome }}</strong>{% if tipo == 'alunos' %}<span class="cell-secondary">CPF {{ registro.cpf }}</span>{% endif %}</td><td>{{ registro.usuario.email }}</td><td>{% if tipo == 'alunos' %}{{ registro.instituicao }}<span class="cell-secondary">{{ registro.curso }}</span>{% else %}{{ registro.usuario.user.username }}{% endif %}</td><td><div class="table-actions"><a href="{% url 'detalhe' tipo registro.pk %}" aria-label="Ver {{ registro.usuario.nome }}">Ver</a><a href="{% url 'editar' tipo registro.pk %}" aria-label="Editar {{ registro.usuario.nome }}">Editar</a><a class="danger-link" href="{% url 'excluir' tipo registro.pk %}" aria-label="Excluir {{ registro.usuario.nome }}">Excluir</a></div></td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}<div class="empty"><span class="card-icon" aria-hidden="true">◇</span><h2>{% if busca %}Nenhum resultado por aqui{% else %}O primeiro cadastro começa com você{% endif %}</h2><p>{% if busca %}Tente outro termo ou limpe a busca.{% else %}Clique em cadastrar {{ singular }} para adicionar um participante.{% endif %}</p></div>{% endif %}
+  {% if pagina.has_other_pages %}<nav class="pagination" aria-label="Paginação">{% if pagina.has_previous %}<a href="?q={{ busca|urlencode }}&page={{ pagina.previous_page_number }}">← Anterior</a>{% endif %}<span>Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>{% if pagina.has_next %}<a href="?q={{ busca|urlencode }}&page={{ pagina.next_page_number }}">Próxima →</a>{% endif %}</nav>{% endif %}
+</section>
+{% endblock %}

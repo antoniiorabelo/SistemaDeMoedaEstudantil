@@ -1,5 +1,32 @@
 # Lab03S01 - Modelagem do Sistema de Moeda Estudantil
 
+## Executar o projeto Django
+
+Na raiz do repositório, pelo terminal PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe manage.py migrate
+.\.venv\Scripts\python.exe manage.py runserver
+```
+
+Se `python` não for reconhecido após a instalação, reabra o terminal ou use `py`.
+Com o ambiente já preparado, basta executar o último comando.
+Acesse http://127.0.0.1:8000/ e use `Ctrl+C` para parar o servidor.
+Esses comandos usam o ambiente virtual diretamente, sem precisar ativá-lo.
+
+O projeto inicial fica em `config/` e usa SQLite, português do Brasil e o fuso
+`America/Sao_Paulo`. As funcionalidades de moeda estudantil ainda serão implementadas.
+
+Para criar um usuário administrador (opcional):
+
+```powershell
+.\.venv\Scripts\python.exe manage.py createsuperuser
+```
+
+O painel administrativo fica em http://127.0.0.1:8000/admin/.
+
 **Disciplina:** Projeto de Software  
 **Sprint:** 01 - Modelagem do sistema  
 **Artefatos:** Diagrama de Casos de Uso, Histórias do Usuário, Diagrama de Classes e Diagrama de Componentes

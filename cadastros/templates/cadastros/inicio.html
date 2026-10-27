@@ -1,0 +1,22 @@
+{% extends 'cadastros/base.html' %}
+{% block content %}
+<section class="hero">
+  <span class="eyebrow"><span class="dot"></span> PROGRAMA DE RECONHECIMENTO ACADÊMICO</span>
+  <h1>Boas conexões.<br><span>Novas possibilidades.</span></h1>
+  <p>Um espaço para aproximar alunos e empresas parceiras.<br>Comece criando seu cadastro no programa.</p>
+</section>
+{% if user.is_staff %}
+<div class="section-heading"><h2>Visão dos cadastros</h2><span class="badge">Administração</span></div>
+<div class="cards">
+  <article class="card"><span class="card-icon" aria-hidden="true">↗</span><span class="eyebrow">COMUNIDADE ACADÊMICA</span><h2>{{ total_alunos }} aluno{{ total_alunos|pluralize }}</h2><p>Consulte, cadastre e atualize os alunos participantes.</p><a class="button" href="{% url 'lista' 'alunos' %}">Gerenciar alunos <span aria-hidden="true">→</span></a></article>
+  <article class="card mint"><span class="card-icon" aria-hidden="true">◇</span><span class="eyebrow">REDE DE PARCEIROS</span><h2>{{ total_empresas }} empresa{{ total_empresas|pluralize }}</h2><p>Gerencie as empresas que fazem parte do programa.</p><a class="button dark" href="{% url 'lista' 'empresas' %}">Gerenciar empresas <span aria-hidden="true">→</span></a></article>
+</div>
+{% else %}
+<div class="section-heading"><h2>Como você quer participar?</h2><span>Escolha seu perfil para começar</span></div>
+<div class="cards">
+  <article class="card"><span class="card-icon" aria-hidden="true">↗</span><span class="eyebrow">PARA QUEM APRENDE</span><h2>Sou aluno</h2><p>Cadastre seus dados e sua instituição para fazer parte da comunidade.</p><div class="card-foot"><span class="badge">Perfil acadêmico</span><a class="button" href="{% url 'criar' 'alunos' %}">Cadastrar aluno <span aria-hidden="true">→</span></a></div></article>
+  <article class="card mint"><span class="card-icon" aria-hidden="true">◇</span><span class="eyebrow">PARA QUEM APOIA</span><h2>Sou empresa</h2><p>Faça parte da rede de parceiros que valoriza o desenvolvimento dos alunos.</p><div class="card-foot"><span class="badge">Empresa parceira</span><a class="button dark" href="{% url 'criar' 'empresas' %}">Cadastrar empresa <span aria-hidden="true">→</span></a></div></article>
+</div>
+<p class="below-cards">Já faz parte do programa? <a href="{% url 'login' %}">Acesse sua conta →</a></p>
+{% endif %}
+{% endblock %}
