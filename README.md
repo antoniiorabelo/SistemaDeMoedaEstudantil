@@ -34,6 +34,82 @@ O Sistema de Moeda Estudantil reconhece o mérito acadêmico por meio de uma moe
 - Senhas são armazenadas somente como hash. Essa é uma decisão de segurança, não um requisito textual do enunciado.
 - A estratégia concreta de banco de dados/ORM fica para a Sprint 02; o componente de persistência desta sprint é independente de tecnologia.
 
+## 2. Diagrama de Entidade e Relacionamento
+
+```mermaid
+erDiagram
+    INSTITUICAO ||--o{ ALUNO : "possui"
+    INSTITUICAO ||--o{ PROFESSOR : "emprega"
+    
+    ALUNO ||--o{ TRANSACAO_MOEDA : "recebe"
+    PROFESSOR ||--o{ TRANSACAO_MOEDA : "envia"
+    
+    EMPRESA_PARCEIRA ||--o{ VANTAGEM : "oferece"
+    
+    ALUNO ||--o{ RESGATE_VANTAGEM : "realiza"
+    VANTAGEM ||--o{ RESGATE_VANTAGEM : "é alvo de"
+
+    INSTITUICAO {
+        INT id_instituicao PK
+        VARCHAR nome
+    }
+
+    ALUNO {
+        INT id_aluno PK
+        VARCHAR nome
+        VARCHAR email "UNIQUE"
+        VARCHAR senha
+        VARCHAR cpf "UNIQUE"
+        VARCHAR rg
+        VARCHAR endereco
+        VARCHAR curso
+        INT saldo_moedas
+        INT id_instituicao FK
+    }
+
+    PROFESSOR {
+        INT id_professor PK
+        VARCHAR nome
+        VARCHAR email "UNIQUE"
+        VARCHAR senha
+        VARCHAR cpf "UNIQUE"
+        VARCHAR departamento
+        INT saldo_moedas
+        INT id_instituicao FK
+    }
+
+    EMPRESA_PARCEIRA {
+        INT id_empresa PK
+        VARCHAR nome
+        VARCHAR email "UNIQUE"
+        VARCHAR senha
+    }
+
+    VANTAGEM {
+        INT id_vantagem PK
+        TEXT descricao
+        VARCHAR foto_url
+        INT custo_moedas
+        INT id_empresa FK
+    }
+
+    TRANSACAO_MOEDA {
+        INT id_transacao PK
+        INT quantidade
+        TEXT motivo
+        DATETIME data_transacao
+        INT id_professor FK
+        INT id_aluno FK
+    }
+
+    RESGATE_VANTAGEM {
+        INT id_resgate PK
+        VARCHAR codigo_cupom "UNIQUE"
+        DATETIME data_resgate
+        INT id_aluno FK
+        INT id_vantagem FK
+    }
+```
 ## 2. Diagrama de Casos de Uso
 
 ```mermaid
