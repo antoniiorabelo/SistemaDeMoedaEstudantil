@@ -1,3 +1,11 @@
 # Ferramenta auxiliar usada somente para gerar o documento da Sprint 01
 /scripts/generate_sprint1_pdf.py
 
+# Ambiente Python e arquivos locais do Django
+.venv/
+__pycache__/
+*.py[cod]
+db.sqlite3
+db.sqlite3-journal
+.env
+

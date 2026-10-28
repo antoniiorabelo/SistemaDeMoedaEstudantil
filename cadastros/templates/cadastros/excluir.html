@@ -1,0 +1,6 @@
+{% extends 'cadastros/base.html' %}
+{% block title %}Excluir {{ singular }} · Moeda Estudantil{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'detalhe' tipo registro.pk %}">← Voltar ao cadastro</a>
+<section class="panel narrow delete-panel"><span class="eyebrow danger-link">CONFIRMAÇÃO DE EXCLUSÃO</span><h1>Excluir este cadastro?</h1><p>Você está prestes a excluir <strong>{{ registro.usuario.nome }}</strong>.</p><p>Os dados{% if tipo == 'alunos' %}, a conta de moedas{% endif %} e as credenciais de acesso serão removidos permanentemente. Esta ação não pode ser desfeita.</p><form method="post">{% csrf_token %}<div class="form-actions"><a href="{% url 'detalhe' tipo registro.pk %}">Cancelar</a><button class="button danger" type="submit">Sim, excluir cadastro</button></div></form></section>
+{% endblock %}
