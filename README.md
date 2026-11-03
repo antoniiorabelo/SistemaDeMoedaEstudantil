@@ -211,7 +211,7 @@ Cobrem: CRUD completo de aluno e empresa; normalização de CPF/RG e saldo inici
 
 ### 6.1 Modelo alvo (domínio completo)
 
-Mapeamento relacional derivado do Diagrama de Classes de Domínio, incluindo as entidades das próximas sprints.
+Mapeamento relacional derivado do Diagrama de Classes de Domínio, incluindo as entidades ainda não implementadas.
 
 ```mermaid
 erDiagram
