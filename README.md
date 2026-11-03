@@ -6,9 +6,12 @@ Na raiz do repositório, pelo terminal PowerShell:
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe manage.py migrate
-.\.venv\Scripts\python.exe manage.py runserver
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python manage.py makemigrations
+python manage.py migrate
+python manage.py preparar_demo --senha teste@123
+python manage.py runserver
 ```
 
 Se `python` não for reconhecido após a instalação, reabra o terminal ou use `py`.
