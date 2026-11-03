@@ -444,7 +444,7 @@ flowchart LR
 
 > UC07 a UC11 exigem sessão autenticada. A autenticação foi mantida como caso de uso independente para evitar poluir o diagrama com relações repetidas.
 
-### Especificação resumida dos casos de uso principais
+---
 
 | Caso de uso | Ator principal | Pré-condição | Fluxo principal e resultado |
 | --- | --- | --- | --- |
@@ -707,7 +707,7 @@ flowchart TB
     repositories --> db
 ```
 
-### Responsabilidades dos componentes
+---
 
 | Componente | Responsabilidade |
 | --- | --- |
