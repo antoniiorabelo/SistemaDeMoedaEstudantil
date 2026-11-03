@@ -1,7 +1,9 @@
 # Lab03S03 - Sistema de Moeda Estudantil (Arquitetura e Persistência)
 
 **Disciplina:** Projeto de Software
+
 **Sprint:** 03 - CRUDs Finais, Arquitetura do Sistema e Camada de Persistência
+
 **Artefatos:** Visão geral MVT/ORM, Diagrama ER, Casos de Uso, Histórias de Usuário, Diagrama de Classes, Diagrama de Componentes, Rastreabilidade e explicação do código.
 
 ---
@@ -209,7 +211,7 @@ Cobrem: CRUD completo de aluno e empresa; normalização de CPF/RG e saldo inici
 
 ### 6.1 Modelo alvo (domínio completo)
 
-Mapeamento relacional derivado do Diagrama de Classes de Domínio, incluindo as entidades das próximas sprints.
+Mapeamento relacional derivado do Diagrama de Classes de Domínio, incluindo as entidades ainda não implementadas.
 
 ```mermaid
 erDiagram
@@ -312,12 +314,12 @@ erDiagram
     INSTITUICAO_ENSINO ||--o{ ALUNO : matricula
     INSTITUICAO_ENSINO ||--o{ PROFESSOR : vincula
 
-    USUARIO_SISTEMA ||--|| ALUNO : especifica
-    USUARIO_SISTEMA ||--|| PROFESSOR : especifica
-    USUARIO_SISTEMA ||--|| EMPRESA_PARCEIRA : especifica
+    USUARIO_SISTEMA ||--o| ALUNO : especifica
+    USUARIO_SISTEMA ||--o| PROFESSOR : especifica
+    USUARIO_SISTEMA ||--o| EMPRESA_PARCEIRA : especifica
 
-    ALUNO ||--|| CONTA_MOEDA : possui
-    PROFESSOR ||--|| CONTA_MOEDA : possui
+    ALUNO |o--|| CONTA_MOEDA : possui
+    PROFESSOR |o--|| CONTA_MOEDA : possui
 
     PROFESSOR ||--o{ CREDITO_SEMESTRAL : recebe
     PROFESSOR ||--o{ DISTRIBUICAO_MOEDAS : envia
@@ -358,14 +360,14 @@ erDiagram
     }
 
     INSTITUICAO_ENSINO {
-        int id PK
+        bigint id PK
         string nome
     }
 
     ALUNO {
         uuid id PK
         uuid usuario_id FK
-        int instituicao_id FK
+        bigint instituicao_id FK
         string cpf
         string rg
         string endereco
@@ -378,7 +380,7 @@ erDiagram
     }
 
     CONTA_MOEDA {
-        int id PK
+        bigint id PK
         uuid aluno_id FK
         bigint saldo
     }
@@ -444,6 +446,19 @@ flowchart LR
 
 ---
 
+| Caso de uso | Ator principal | Pré-condição | Fluxo principal e resultado |
+| --- | --- | --- | --- |
+| UC01 - Cadastrar aluno | Aluno | Instituição disponível para seleção | Informa os dados obrigatórios, escolhe a instituição e o curso e cria as credenciais. O sistema valida unicidade de CPF, RG, e-mail e login e cria a conta com saldo zero. |
+| UC02 - Cadastrar empresa | Empresa Parceira | Não possuir cadastro | Informa identificação, e-mail e credenciais. O sistema valida os dados e cria a empresa. |
+| UC03 - Autenticar usuário | Aluno, Professor ou Empresa | Usuário cadastrado e ativo | Informa login e senha. O sistema valida as credenciais e inicia uma sessão associada ao perfil. |
+| UC06 - Creditar moedas semestrais | Agendador Semestral | Novo semestre identificado | Para cada professor ativo, registra um crédito de 1.000 moedas. O valor é somado ao saldo existente e a execução não pode duplicar o crédito do mesmo semestre. |
+| UC07 - Distribuir moedas | Professor | Professor autenticado e com saldo suficiente | Seleciona aluno, informa valor positivo e motivo não vazio. O sistema debita o professor, credita o aluno, registra a distribuição e solicita o e-mail de notificação. Se o saldo for insuficiente, nada é alterado. |
+| UC08 - Consultar saldo e extrato | Aluno ou Professor | Usuário autenticado | Exibe o saldo atual e as transações da própria conta em ordem cronológica decrescente. |
+| UC09 - Cadastrar vantagem | Empresa Parceira | Empresa autenticada | Informa descrição, foto e custo positivo em moedas. O sistema associa a vantagem à empresa e a disponibiliza no catálogo. |
+| UC11 - Resgatar vantagem | Aluno | Aluno autenticado, vantagem ativa e saldo suficiente | O sistema debita o custo, registra o resgate, gera um cupom único e envia o mesmo código ao aluno e à empresa. Se o saldo for insuficiente ou a vantagem estiver inativa, nada é alterado. |
+
+---
+
 ## 8. Histórias do Usuário
 
 ### HU01 - Cadastro de aluno
@@ -473,10 +488,15 @@ flowchart LR
 
 **Como** administrador do sistema, **quero** manter instituições e pré-cadastrar professores vinculados a elas, **para** disponibilizar dados confiáveis no programa.
 
+- **Dado** uma instituição participante, **quando** ela for cadastrada, **então** ela aparece na seleção do cadastro de aluno.
+- **Dado** nome, CPF, departamento, login, senha inicial e instituição, **quando** o professor for pré-cadastrado, **então** ele é criado explicitamente vinculado à instituição.
+- **Dado** um CPF ou login existente, **quando** o pré-cadastro for solicitado, **então** o sistema impede a duplicidade.
+
 ### HU05 - Crédito semestral
 
 **Como** professor, **quero** receber 1.000 moedas a cada semestre, **para** reconhecer o mérito dos meus alunos.
 
+- **Dado** o início de um novo semestre, **quando** o processamento semestral ocorrer, **então** 1.000 moedas são somadas ao saldo de cada professor ativo.
 - O saldo anterior é preservado e acrescido de 1.000.
 - Reexecutar a rotina no mesmo semestre não duplica o crédito.
 
@@ -492,16 +512,24 @@ flowchart LR
 
 **Como** aluno ou professor, **quero** consultar meu saldo e minhas transações, **para** acompanhar a movimentação da conta.
 
+- **Dado** um usuário autenticado, **quando** abrir o extrato, **então** ele visualiza seu saldo atual e somente suas transações.
+- **Dado** um professor, **quando** consultar o extrato, **então** ele vê créditos semestrais e envios realizados.
+- **Dado** um aluno, **quando** consultar o extrato, **então** ele vê moedas recebidas e resgates realizados.
+
 ### HU08 - Cadastro de vantagem
 
 **Como** empresa parceira, **quero** cadastrar uma vantagem com descrição, foto e custo, **para** disponibilizá-la aos alunos.
 
+- **Dado** descrição e foto preenchidas e custo positivo, **quando** a empresa confirmar o cadastro, **então** a vantagem é vinculada à empresa e fica disponível no catálogo.
 - Custo nulo ou não positivo é rejeitado.
 - Somente a empresa proprietária pode alterar a vantagem.
 
 ### HU09 - Consulta de vantagens
 
 **Como** aluno, **quero** visualizar as vantagens disponíveis e seus custos, **para** escolher onde utilizar minhas moedas.
+
+- **Dado** um aluno autenticado, **quando** acessar o catálogo, **então** ele vê as vantagens ativas com descrição, foto, empresa e custo.
+- **Dado** uma vantagem inativa, **quando** o catálogo for exibido, **então** ela não está disponível para resgate.
 
 ### HU10 - Resgate de vantagem
 
@@ -657,7 +685,7 @@ flowchart TB
 
         subgraph persistence["Camada de Persistência"]
             repositories["Django ORM (models.py)"]
-            db[("Banco Relacional (SQLite/PostgreSQL)")]
+            db[("Banco Relacional (SQLite)")]
         end
     end
 
@@ -678,6 +706,19 @@ flowchart TB
     notificacao --> repositories
     repositories --> db
 ```
+
+---
+
+| Componente | Responsabilidade |
+| --- | --- |
+| Templates (Django Templates) | Formulários, catálogo, saldo, extrato e feedback ao usuário. |
+| Controllers / Views (`views.py`) | Receber requisições, validar formato de entrada, aplicar autorização por perfil e coordenar casos de uso. |
+| Autenticação | Validar credenciais, manter sessões e proteger operações por perfil. |
+| Cadastros (`services.py`) | Cadastrar alunos e empresas e manter instituições/professores pré-cadastrados. |
+| Carteira e Extrato | Controlar saldos, créditos semestrais, distribuições e consultas de extrato. |
+| Vantagens e Resgates | Manter o catálogo, validar saldo/vantagem, registrar o resgate e gerar cupom único. |
+| Notificações | Montar, enviar e registrar e-mails de distribuição e resgate. |
+| Django ORM (`models.py`) | Isolar o domínio do mecanismo de persistência e controlar transações atômicas. |
 
 ---
 
