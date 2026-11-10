@@ -1,0 +1,144 @@
+@startuml
+title Diagrama de Sequência Geral - Sistema de Moeda Estudantil (UC01-UC13)
+hide footbox
+autonumber
+
+actor "Administrador" as Admin
+actor "Agendador\nsemestral" as Agenda
+actor "Professor" as Professor
+actor "Aluno" as Aluno
+actor "Empresa\nparceira" as Empresa
+boundary "Interface web" as Tela
+control "Views / Admin / Auth" as View
+control "Serviços de domínio" as Servico
+database "Django ORM / SQLite" as Banco
+collections "E-mail" as Email
+
+group UC04 e UC05 - Preparação institucional
+  Admin -> Tela : cadastrar instituição
+  Tela -> View : POST /admin/.../instituicaoensino/add/
+  View -> Banco : validar unicidade e salvar InstituicaoEnsino
+  Banco --> View : instituição disponível
+  View --> Tela : confirmação
+  Admin -> Tela : pré-cadastrar professor vinculado
+  Tela -> View : POST /professores/novo/
+  View -> Servico : salvar_cadastro(ProfessorForm)
+  Servico -> Banco : transação: User, perfil Professor e ContaMoeda(0)
+  Banco --> Servico : cadastro salvo
+  Servico --> View : professor criado
+  View --> Tela : confirmação
+end
+
+group UC01 e UC02 - Cadastros públicos
+  Aluno -> Tela : informar dados, instituição e credenciais
+  Tela -> View : POST /alunos/novo/
+  View -> Servico : salvar_cadastro(AlunoForm)
+  Servico -> Banco : transação: User, perfil Aluno e ContaMoeda(0)
+  Banco --> Servico : aluno salvo
+  Servico --> View : aluno criado
+  View --> Tela : solicitar login
+  Empresa -> Tela : informar dados e credenciais
+  Tela -> View : POST /empresas/novo/
+  View -> Servico : salvar_cadastro(EmpresaForm)
+  Servico -> Banco : transação: User e perfil EmpresaParceira
+  Banco --> Servico : empresa salva
+  Servico --> View : empresa criada
+  View --> Tela : solicitar login
+end
+
+group UC03 - Autenticação por perfil
+  Aluno -> Tela : informar login e senha
+  Tela -> View : POST /entrar/
+  View -> Banco : conferir hash, atividade e criar sessão
+  alt credenciais válidas
+    Banco --> View : sessão autenticada
+    View --> Tela : abrir perfil
+  else credenciais inválidas
+    Banco --> View : acesso negado
+    View --> Tela : erro genérico
+  end
+  note over Professor,View
+    O mesmo fluxo de autenticação atende
+    professor e empresa parceira.
+  end note
+end
+
+group UC06 - Crédito semestral independente do login
+  Agenda -> Servico : creditar_semestre(AAAA.S)
+  Servico -> Banco : buscar professores ativos
+  loop para cada professor ativo
+    Servico -> Banco : get_or_create(CreditoSemestral)
+    alt ainda não creditado no semestre
+      Servico -> Banco : saldo do professor += 1.000
+    else já creditado
+      Banco --> Servico : manter saldo
+    end
+  end
+  Servico --> Agenda : quantidade creditada
+end
+
+group UC09 - Empresa publica vantagem
+  Empresa -> Tela : descrição, URL da foto e custo positivo
+  Tela -> View : POST /minhas-vantagens/nova/
+  View -> Banco : salvar Vantagem vinculada à empresa
+  Banco --> View : vantagem ativa
+  View --> Tela : confirmação
+end
+
+group UC07 e UC13 - Professor distribui moedas
+  Professor -> Tela : selecionar aluno, valor e motivo
+  Tela -> View : POST /distribuir/
+  View -> Servico : distribuir_moedas(professor, aluno, valor, motivo)
+  Servico -> Banco : transação: débito condicional do professor
+  alt saldo insuficiente ou dados inválidos
+    Banco --> Servico : operação rejeitada
+    Servico --> View : erro; nenhum saldo alterado
+    View --> Tela : informar falha
+  else distribuição válida
+    Servico -> Banco : creditar aluno; criar DistribuicaoMoedas
+    Servico -> Banco : criar NotificacaoEmail pendente; COMMIT
+    Banco --> Servico : distribuição confirmada
+    Servico -> Email : após commit, avisar aluno
+    Email -> Banco : registrar envio ou erro para reenvio
+    Servico --> View : distribuição criada
+    View --> Tela : confirmação
+  end
+end
+
+group UC08 - Consulta da carteira
+  Aluno -> Tela : consultar saldo e extrato
+  Tela -> View : GET /extrato/
+  View -> Banco : buscar conta, distribuições e resgates do aluno
+  Banco --> View : saldo e movimentos próprios
+  View --> Tela : extrato em ordem decrescente
+  note over Professor,View
+    Professor usa a mesma rota; visualiza
+    créditos semestrais e distribuições próprias.
+  end note
+end
+
+group UC10, UC11, UC12 e UC13 - Catálogo e resgate
+  Aluno -> Tela : consultar vantagens
+  Tela -> View : GET /vantagens/
+  View -> Banco : buscar vantagens ativas
+  Banco --> View : catálogo e custos
+  View --> Tela : exibir vantagens e saldo
+  Aluno -> Tela : confirmar vantagem escolhida
+  Tela -> View : POST /vantagens/{id}/resgatar/
+  View -> Servico : resgatar_vantagem(aluno, vantagem)
+  Servico -> Banco : transação: verificar vantagem e debitar aluno
+  alt vantagem inativa ou saldo insuficiente
+    Banco --> Servico : operação rejeitada
+    Servico --> View : erro; nenhum débito
+    View --> Tela : informar falha
+  else resgate válido
+    Servico -> Banco : criar Resgate(custo histórico, cupom único)
+    Servico -> Banco : criar 2 NotificacaoEmail pendentes; COMMIT
+    Banco --> Servico : cupom registrado
+    Servico -> Email : após commit, enviar código ao aluno e à empresa
+    Email -> Banco : registrar envios ou erros para reenvio
+    Servico --> View : resgate concluído
+    View --> Tela : exibir cupom ao aluno
+  end
+end
+@enduml

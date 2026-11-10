@@ -8,6 +8,7 @@ Os arquivos `.puml` são editáveis em ferramentas compatíveis com PlantUML; os
 
 | Fluxo | Casos de uso | Diagrama |
 | --- | --- | --- |
+| **Sequência geral do projeto** | **UC01–UC13** | **[Abrir SVG](09_sequencia_geral_projeto.svg) · [Fonte editável](09_sequencia_geral_projeto.puml)** |
 | Instituições | UC04 | [Sequência](00_instituicoes.svg) · [Fonte](00_instituicoes.puml) |
 | Cadastros | UC01, UC02, UC05 | [Sequência](01_cadastros.svg) · [Fonte](01_cadastros.puml) |
 | Autenticação | UC03 | [Sequência](02_autenticacao.svg) · [Fonte](02_autenticacao.puml) |
@@ -18,7 +19,7 @@ Os arquivos `.puml` são editáveis em ferramentas compatíveis com PlantUML; os
 | Resgate, cupom e aviso | UC11, UC12, UC13 | [Sequência](07_resgate.svg) · [Fonte](07_resgate.puml) |
 | Fluxo integrado | UC01–UC13 | [Visão geral de interação](08_visao_geral_interacao.svg) · [Fonte](08_visao_geral_interacao.puml) |
 
-O diagrama de visão geral usa a notação de fluxo de controle UML e nós `ref` para indicar os usos de interação detalhados nos diagramas de sequência. O crédito semestral aparece como gatilho independente do acesso web.
+O **diagrama de sequência geral** encadeia o fluxo completo do projeto em um único desenho. Os demais detalham cada operação. O diagrama de visão geral usa a notação de fluxo de controle UML e nós `ref` para indicar os usos de interação detalhados nos diagramas de sequência. O crédito semestral aparece como gatilho independente do acesso web.
 
 ## Casos de uso implementados nesta sprint
 
