@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth import get_user_model, password_validation
 from django.core.exceptions import ValidationError
 
-from .models import Aluno, EmpresaParceira, UsuarioSistema
+from .models import Aluno, EmpresaParceira, Professor, UsuarioSistema, Vantagem
 from .validators import normalizar_cpf, normalizar_rg, validar_cpf, validar_rg
 
 User = get_user_model()
@@ -79,6 +79,8 @@ class AlunoForm(CadastroForm):
     def clean_cpf(self):
         value = normalizar_cpf(self.cleaned_data['cpf'])
         validar_cpf(value)
+        if Professor.objects.filter(cpf=value).exists():
+            raise ValidationError('Este CPF já está cadastrado como professor.')
         return value
 
     def clean_rg(self):
@@ -95,3 +97,37 @@ class EmpresaForm(CadastroForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['nome'].label = 'Nome da empresa'
+
+
+class ProfessorForm(CadastroForm):
+    cpf = forms.CharField(label='CPF', max_length=14)
+
+    class Meta:
+        model = Professor
+        fields = ['cpf', 'departamento', 'instituicao']
+
+    def clean_cpf(self):
+        value = normalizar_cpf(self.cleaned_data['cpf'])
+        validar_cpf(value)
+        if Aluno.objects.filter(cpf=value).exists():
+            raise ValidationError('Este CPF já está cadastrado como aluno.')
+        return value
+
+
+class DistribuicaoForm(forms.Form):
+    aluno = forms.ModelChoiceField(queryset=Aluno.objects.all(), label='Aluno')
+    quantidade = forms.IntegerField(min_value=1, label='Moedas')
+    motivo = forms.CharField(widget=forms.Textarea(attrs={'rows': 3}), label='Motivo')
+
+    def clean_motivo(self):
+        motivo = self.cleaned_data['motivo'].strip()
+        if not motivo:
+            raise ValidationError('Informe o motivo da distribuição.')
+        return motivo
+
+
+class VantagemForm(forms.ModelForm):
+    class Meta:
+        model = Vantagem
+        fields = ['descricao', 'foto_url', 'custo_moedas', 'ativa']
+        labels = {'descricao': 'Descrição', 'custo_moedas': 'Custo em moedas', 'ativa': 'Disponível'}

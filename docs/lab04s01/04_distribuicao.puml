@@ -1,0 +1,33 @@
+@startuml
+title UC07 e UC13 - Distribuir moedas e notificar aluno
+actor "Professor" as Professor
+boundary "Tela Distribuir" as Tela
+control "operacoes.distribuir" as View
+control "distribuir_moedas" as Servico
+database "Django ORM / SQLite" as Banco
+collections "Serviço de e-mail" as Email
+Professor -> Tela : seleciona aluno, valor e motivo
+Tela -> View : POST /distribuir/
+View -> View : valida perfil e formulário
+alt entrada inválida
+  View --> Tela : exibe erros
+else entrada válida
+  View -> Servico : distribuir_moedas(professor, aluno, valor, motivo)
+  Servico -> Banco : BEGIN; débito condicional (saldo >= valor)
+  alt saldo insuficiente
+    Banco --> Servico : 0 linhas debitadas
+    Servico -> Banco : ROLLBACK
+    Servico --> View : SaldoInsuficiente
+    View --> Tela : exibe erro
+  else saldo suficiente
+    Banco --> Servico : 1 linha debitada
+    Servico -> Banco : crédito do aluno e registro da distribuição
+    Servico -> Banco : cria NotificacaoEmail pendente
+    Servico -> Banco : COMMIT
+    Servico -> Email : on_commit: enviar aviso ao aluno
+    Email -> Banco : marca enviada ou erro para reenvio
+    Servico --> View : distribuição criada
+    View --> Tela : redireciona para extrato
+  end
+end
+@enduml

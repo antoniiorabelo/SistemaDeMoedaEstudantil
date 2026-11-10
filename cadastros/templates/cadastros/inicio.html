@@ -10,6 +10,7 @@
 <div class="cards">
   <article class="card"><span class="card-icon" aria-hidden="true">↗</span><span class="eyebrow">COMUNIDADE ACADÊMICA</span><h2>{{ total_alunos }} aluno{{ total_alunos|pluralize }}</h2><p>Consulte, cadastre e atualize os alunos participantes.</p><a class="button" href="{% url 'lista' 'alunos' %}">Gerenciar alunos <span aria-hidden="true">→</span></a></article>
   <article class="card mint"><span class="card-icon" aria-hidden="true">◇</span><span class="eyebrow">REDE DE PARCEIROS</span><h2>{{ total_empresas }} empresa{{ total_empresas|pluralize }}</h2><p>Gerencie as empresas que fazem parte do programa.</p><a class="button dark" href="{% url 'lista' 'empresas' %}">Gerenciar empresas <span aria-hidden="true">→</span></a></article>
+  <article class="card"><span class="card-icon" aria-hidden="true">✳</span><span class="eyebrow">CORPO DOCENTE</span><h2>{{ total_professores }} professor{{ total_professores|pluralize:'es' }}</h2><p>Pré-cadastre professores vinculados às instituições.</p><a class="button" href="{% url 'lista' 'professores' %}">Gerenciar professores →</a></article>
 </div>
 {% else %}
 <div class="section-heading"><h2>Como você quer participar?</h2><span>Escolha seu perfil para começar</span></div>

@@ -2,7 +2,7 @@
 {% block title %}{% if registro %}Editar{% else %}Cadastrar{% endif %} {{ singular }} · Moeda Estudantil{% endblock %}
 {% block content %}
 <a class="back" href="{% if registro %}{% url 'detalhe' tipo registro.pk %}{% elif user.is_staff %}{% url 'lista' tipo %}{% else %}{% url 'inicio' %}{% endif %}">← Voltar</a>
-<div class="page-heading"><span class="eyebrow">{{ plural }}</span><h1>{% if registro %}Atualizar cadastro{% else %}Vamos começar?{% endif %}</h1><p>{% if registro %}Mantenha suas informações em dia.{% else %}Preencha os dados abaixo para cadastrar {% if tipo == 'alunos' %}um aluno{% else %}uma empresa parceira{% endif %}.{% endif %}</p></div>
+<div class="page-heading"><span class="eyebrow">{{ plural }}</span><h1>{% if registro %}Atualizar cadastro{% else %}Vamos começar?{% endif %}</h1><p>{% if registro %}Mantenha suas informações em dia.{% else %}Preencha os dados abaixo para cadastrar {% if tipo == 'alunos' %}um aluno{% elif tipo == 'professores' %}um professor{% else %}uma empresa parceira{% endif %}.{% endif %}</p></div>
 <div class="form-layout">
   <form method="post" class="panel form-panel" novalidate>
     {% csrf_token %}
@@ -21,6 +21,6 @@
     {% if tipo == 'alunos' and not form.fields.instituicao.queryset.exists %}<div class="message info">Nenhuma instituição cadastrada. Solicite o pré-cadastro ao administrador antes de continuar.</div>{% endif %}
     <div class="form-actions"><a href="{% if registro %}{% url 'detalhe' tipo registro.pk %}{% else %}{% url 'inicio' %}{% endif %}">Cancelar</a><button class="button" type="submit">{% if registro %}Salvar alterações{% else %}Criar cadastro{% endif %} <span aria-hidden="true">→</span></button></div>
   </form>
-  <aside class="aside-note"><span class="card-icon" aria-hidden="true">✳</span><h2>Seu próximo passo começa aqui.</h2><p>{% if tipo == 'alunos' %}Selecione uma instituição já cadastrada e informe seu curso. Sua conta de moedas será criada com saldo zero.{% else %}Use o nome e o e-mail da empresa. O login será usado para acessar e gerenciar o cadastro.{% endif %}</p><hr><p>Seus dados de acesso são pessoais. Escolha uma senha segura e guarde-a com você.</p></aside>
+  <aside class="aside-note"><span class="card-icon" aria-hidden="true">✳</span><h2>Seu próximo passo começa aqui.</h2><p>{% if tipo == 'alunos' %}Selecione uma instituição já cadastrada e informe seu curso. Sua conta de moedas será criada com saldo zero.{% elif tipo == 'professores' %}Vincule o professor a uma instituição. A conta de moedas será criada com saldo zero; o crédito é feito pela rotina semestral.{% else %}Use o nome e o e-mail da empresa. O login será usado para acessar e gerenciar o cadastro.{% endif %}</p><hr><p>Seus dados de acesso são pessoais. Escolha uma senha segura e guarde-a com você.</p></aside>
 </div>
 {% endblock %}

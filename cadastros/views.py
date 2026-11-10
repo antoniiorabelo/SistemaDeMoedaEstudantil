@@ -4,18 +4,20 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db import IntegrityError
+from django.db.models.deletion import ProtectedError
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
-from .forms import AlunoForm, EmpresaForm
-from .models import Aluno, EmpresaParceira
+from .forms import AlunoForm, EmpresaForm, ProfessorForm
+from .models import Aluno, EmpresaParceira, Professor
 from .services import excluir_cadastro, salvar_cadastro
 
 
 CONFIG = {
     'alunos': {'model': Aluno, 'form': AlunoForm, 'singular': 'aluno', 'plural': 'Alunos'},
     'empresas': {'model': EmpresaParceira, 'form': EmpresaForm, 'singular': 'empresa', 'plural': 'Empresas parceiras'},
+    'professores': {'model': Professor, 'form': ProfessorForm, 'singular': 'professor', 'plural': 'Professores'},
 }
 
 
@@ -26,6 +28,8 @@ def contexto(tipo):
 def registros(tipo):
     query = CONFIG[tipo]['model'].objects.select_related('usuario__user')
     if tipo == 'alunos':
+        query = query.select_related('instituicao', 'conta')
+    elif tipo == 'professores':
         query = query.select_related('instituicao', 'conta')
     return query
 
@@ -43,11 +47,15 @@ def inicio(request):
         if cadastro is None:
             cadastro = EmpresaParceira.objects.filter(usuario__user=request.user).first()
             tipo = 'empresas'
+        if cadastro is None:
+            cadastro = Professor.objects.filter(usuario__user=request.user).first()
+            tipo = 'professores'
         if cadastro:
             return redirect('detalhe', tipo=tipo, pk=cadastro.pk)
     return render(request, 'cadastros/inicio.html', {
         'total_alunos': Aluno.objects.count() if request.user.is_staff else None,
         'total_empresas': EmpresaParceira.objects.count() if request.user.is_staff else None,
+        'total_professores': Professor.objects.count() if request.user.is_staff else None,
     })
 
 
@@ -59,8 +67,12 @@ def lista(request, tipo):
     busca = request.GET.get('q', '').strip()
     if busca:
         filtro = Q(usuario__nome__icontains=busca) | Q(usuario__email__icontains=busca) | Q(usuario__user__username__icontains=busca)
+        if tipo in ('alunos', 'professores'):
+            filtro |= Q(cpf__icontains=busca) | Q(instituicao__nome__icontains=busca)
         if tipo == 'alunos':
-            filtro |= Q(cpf__icontains=busca) | Q(curso__icontains=busca) | Q(instituicao__nome__icontains=busca)
+            filtro |= Q(curso__icontains=busca)
+        elif tipo == 'professores':
+            filtro |= Q(departamento__icontains=busca)
         query = query.filter(filtro)
     pagina = Paginator(query, 10).get_page(request.GET.get('page'))
     return render(request, 'cadastros/lista.html', {**contexto(tipo), 'pagina': pagina, 'busca': busca})
@@ -75,6 +87,8 @@ def detalhe(request, tipo, pk):
 
 @require_http_methods(['GET', 'POST'])
 def criar(request, tipo):
+    if tipo == 'professores' and not request.user.is_staff:
+        raise PermissionDenied('O pré-cadastro de professores é restrito à administração.')
     if request.user.is_authenticated and not request.user.is_staff:
         raise PermissionDenied('Você já possui um cadastro. Edite seu perfil.')
     return formulario(request, tipo)
@@ -83,6 +97,8 @@ def criar(request, tipo):
 @login_required
 @require_http_methods(['GET', 'POST'])
 def editar(request, tipo, pk):
+    if tipo == 'professores' and not request.user.is_staff:
+        raise PermissionDenied('A edição de professores é restrita à administração.')
     registro = get_object_or_404(registros(tipo), pk=pk)
     verificar_acesso(request, registro)
     return formulario(request, tipo, registro)
@@ -109,11 +125,17 @@ def formulario(request, tipo, registro=None):
 @login_required
 @require_http_methods(['GET', 'POST'])
 def excluir(request, tipo, pk):
+    if tipo == 'professores' and not request.user.is_staff:
+        raise PermissionDenied('A exclusão de professores é restrita à administração.')
     registro = get_object_or_404(registros(tipo), pk=pk)
     verificar_acesso(request, registro)
     if request.method == 'POST':
         staff = request.user.is_staff
-        excluir_cadastro(registro)
+        try:
+            excluir_cadastro(registro)
+        except ProtectedError:
+            messages.error(request, 'Este cadastro possui movimentações e não pode ser excluído.')
+            return redirect('detalhe', tipo=tipo, pk=pk)
         messages.success(request, 'Cadastro e credenciais excluídos com sucesso.')
         if staff:
             return redirect('lista', tipo=tipo)

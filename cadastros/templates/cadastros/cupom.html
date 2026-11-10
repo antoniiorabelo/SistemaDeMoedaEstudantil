@@ -1,0 +1,5 @@
+{% extends 'cadastros/base.html' %}
+{% block title %}Cupom · Moeda Estudantil{% endblock %}
+{% block content %}
+<section class="panel narrow"><span class="eyebrow">RESGATE CONCLUÍDO</span><h1>Seu cupom</h1><p>{{ resgate.vantagem.descricao }} · {{ resgate.vantagem.empresa.usuario.nome }}</p><p class="balance">{{ resgate.codigo_cupom }}</p><p>Emitido em {{ resgate.criado_em|date:'d/m/Y H:i' }}. O mesmo código é encaminhado por e-mail a você e à empresa parceira.</p><a class="button" href="{% url 'catalogo' %}">Voltar ao catálogo</a></section>
+{% endblock %}

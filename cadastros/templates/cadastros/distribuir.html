@@ -1,0 +1,10 @@
+{% extends 'cadastros/base.html' %}
+{% block title %}Distribuir moedas · Moeda Estudantil{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'extrato' %}">← Voltar ao extrato</a>
+<div class="page-heading"><span class="eyebrow">RECONHECIMENTO</span><h1>Distribuir moedas</h1><p>Saldo disponível: {{ saldo }} moedas.</p></div>
+<form method="post" class="panel narrow form-panel" novalidate>{% csrf_token %}
+{% if form.non_field_errors %}<div class="message error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+{% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}</div>{% endfor %}
+<div class="form-actions"><a href="{% url 'extrato' %}">Cancelar</a><button type="submit" class="button">Enviar moedas</button></div></form>
+{% endblock %}

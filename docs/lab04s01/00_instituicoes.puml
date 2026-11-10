@@ -1,0 +1,21 @@
+@startuml
+title UC04 - Manter instituições de ensino
+actor "Administrador" as Admin
+boundary "Django Admin" as Tela
+control "InstituicaoAdmin" as View
+database "Django ORM / SQLite" as Banco
+Admin -> Tela : informa nome da instituição
+Tela -> View : POST /admin/cadastros/instituicaoensino/add/
+View -> View : verifica permissão administrativa e valida nome
+alt nome duplicado ou inválido
+  View --> Tela : exibe erros sem gravar
+else dados válidos
+  View -> Banco : salva InstituicaoEnsino
+  Banco --> View : instituição criada
+  View --> Tela : confirma cadastro
+end
+note over Admin,Banco
+  Professores e alunos só podem ser vinculados
+  a instituições já cadastradas.
+end note
+@enduml

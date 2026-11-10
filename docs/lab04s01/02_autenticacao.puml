@@ -1,0 +1,22 @@
+@startuml
+title UC03 - Autenticar usuário
+actor "Usuário" as Usuario
+boundary "Tela de login" as Tela
+control "Django LoginView" as Login
+control "AuthenticationBackend" as Auth
+database "User / sessão" as Banco
+Usuario -> Tela : informa login e senha
+Tela -> Login : POST /entrar/
+Login -> Auth : authenticate(login, senha)
+Auth -> Banco : consulta User e confere hash e ativo
+alt credenciais inválidas
+  Banco --> Auth : inválido
+  Auth --> Login : None
+  Login --> Tela : erro genérico
+else credenciais válidas
+  Banco --> Auth : User válido
+  Auth --> Login : User
+  Login -> Banco : cria sessão autenticada
+  Login --> Tela : redireciona para perfil
+end
+@enduml

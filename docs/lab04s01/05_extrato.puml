@@ -1,0 +1,26 @@
+@startuml
+title UC08 - Consultar saldo e extrato
+actor "Aluno / Professor" as Ator
+boundary "Tela Extrato" as Tela
+control "operacoes.extrato" as View
+database "Django ORM / SQLite" as Banco
+Ator -> Tela : abre /extrato/
+Tela -> View : GET /extrato/
+View -> Banco : identifica perfil autenticado
+alt perfil não autorizado
+  Banco --> View : nenhum aluno ou professor
+  View --> Tela : HTTP 403
+else aluno
+  Banco --> View : aluno e conta
+  View -> Banco : consulta recebimentos e resgates próprios
+  Banco --> View : movimentos
+  View -> View : ordena por data decrescente
+  View --> Tela : saldo e extrato do aluno
+else professor
+  Banco --> View : professor e conta
+  View -> Banco : consulta créditos e distribuições próprias
+  Banco --> View : movimentos
+  View -> View : ordena por data decrescente
+  View --> Tela : saldo e extrato do professor
+end
+@enduml
