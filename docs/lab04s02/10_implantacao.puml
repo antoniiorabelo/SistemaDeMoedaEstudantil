@@ -1,0 +1,41 @@
+@startuml
+!pragma layout smetana
+title Diagrama de Implantação - Moeda Estudantil
+
+node "Dispositivo do usuário" <<device>> as Cliente {
+  node "Navegador Web" <<execution environment>> as Browser {
+    artifact "HTML / CSS\n(templates renderizados)" as Pagina
+  }
+}
+
+cloud "Render (Cloud)" as Render {
+  node "Web Service" <<Python 3.12>> as Web {
+    node "gunicorn" <<WSGI server>> as Gunicorn {
+      artifact "config (settings, urls, wsgi)" as Config
+      artifact "cadastros\n(models, views, forms,\nservices, templates)" as App
+      artifact "WhiteNoise\n(arquivos estáticos)" as Static
+    }
+  }
+  database "PostgreSQL" <<Render Postgres>> as DB {
+    artifact "Esquema\n(migrations Django)" as Schema
+  }
+}
+
+cloud "Provedor de e-mail" <<API HTTP>> as Mail {
+  node "Serviço transacional\n(Resend / Brevo)" as MailSvc
+}
+
+node "Administrador (execução manual)" <<máquina local>> as Cron {
+  artifact "manage.py creditar_semestre" as Cmd
+}
+
+node "Repositório GitHub" <<VCS>> as Git {
+  artifact "Código-fonte +\nrender.yaml" as Repo
+}
+
+Browser --> Web : HTTPS (443)
+Web --> DB : TCP 5432\n(DATABASE_URL, TLS)
+Web --> MailSvc : HTTPS (API)\ncupom, notificações
+Cmd --> DB : TCP 5432\n(conexão externa)
+Repo ..> Web : deploy automático\n(collectstatic + migrate)
+@enduml
