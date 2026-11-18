@@ -1,10 +1,10 @@
-# Lab03S03 - Sistema de Moeda Estudantil (Arquitetura e Persistência)
+# Sistema de Moeda Estudantil
 
-> **Sprint 04:** [Lab04S01 — diagramas de sequência, visão geral de interação e casos de uso restantes](docs/lab04s01/README.md). As seções abaixo registram a situação da Sprint 03.
+> **Release 02:** o [Lab04S01](#14-lab04s01-diagramas-de-sequência-e-casos-de-uso-restantes) e o [Lab04S02](#15-lab04s02-diagrama-de-implantação-e-deploy) estão documentados nas seções 14 e 15. As seções 1 a 13 descrevem a base construída na Sprint 03, com o estado de implementação atualizado na seção 12.
 
 **Disciplina:** Projeto de Software
 
-**Sprint:** 03 - CRUDs Finais, Arquitetura do Sistema e Camada de Persistência
+**Sprint 03:** CRUDs Finais, Arquitetura do Sistema e Camada de Persistência
 
 **Artefatos:** Visão geral MVT/ORM, Diagrama ER, Casos de Uso, Histórias de Usuário, Diagrama de Classes, Diagrama de Componentes, Rastreabilidade e explicação do código.
 
@@ -25,6 +25,8 @@
 11. [Rastreabilidade de requisitos](#11-rastreabilidade-de-requisitos)
 12. [Estado de implementação](#12-estado-de-implementação)
 13. [Definição de pronto da Sprint 03](#13-definição-de-pronto-da-sprint-03)
+14. [Lab04S01: diagramas de sequência e casos de uso restantes](#14-lab04s01-diagramas-de-sequência-e-casos-de-uso-restantes)
+15. [Lab04S02: diagrama de implantação e deploy](#15-lab04s02-diagrama-de-implantação-e-deploy)
 
 ---
 
@@ -118,7 +120,7 @@ urls.py ──► views.py (Controller) ──► forms.py (validação de entra
           services.py (regras e transações atômicas)
                 │
                 ▼
-          models.py (Django ORM) ──► SQLite
+          models.py (Django ORM) ──► SQLite (local) / PostgreSQL (produção)
                 ▲
                 │
         templates/ (View/Template) renderizam o contexto vindo das views
@@ -126,7 +128,7 @@ urls.py ──► views.py (Controller) ──► forms.py (validação de entra
 
 | Camada | Arquivo(s) | Responsabilidade |
 | --- | --- | --- |
-| Roteamento | `config/urls.py`, `cadastros/urls.py` | Mapeia URLs para views; conversor `<tipo:tipo>` aceita só `alunos` ou `empresas`. |
+| Roteamento | `config/urls.py`, `cadastros/urls.py` | Mapeia URLs para views; conversor `<tipo:tipo>` aceita `alunos`, `empresas` ou `professores`. |
 | Apresentação | `templates/cadastros/*.html`, `static/cadastros/style.css` | Telas de início, login, lista, detalhe, formulário e exclusão; páginas 403 e 404. |
 | Controle | `views.py` | Recebe a requisição, aplica autorização, chama formulário e serviço, escolhe o template/redirect. |
 | Validação | `forms.py`, `validators.py` | Normaliza e valida CPF, RG, e-mail, login e senha. |
@@ -213,7 +215,7 @@ Cobrem: CRUD completo de aluno e empresa; normalização de CPF/RG e saldo inici
 
 ### 6.1 Modelo alvo (domínio completo)
 
-Mapeamento relacional derivado do Diagrama de Classes de Domínio, incluindo as entidades ainda não implementadas.
+Mapeamento relacional derivado do Diagrama de Classes de Domínio, incluindo as entidades ainda não implementadas na Sprint 03.
 
 ```mermaid
 erDiagram
@@ -337,9 +339,9 @@ erDiagram
     CUPOM ||--o{ NOTIFICACAO_EMAIL : dispara
 ```
 
-### 6.2 Modelo efetivamente implementado hoje
+### 6.2 Modelo implementado na Sprint 03
 
-Reflete `cadastros/models.py` e a migração `0001_initial`. A diferença principal em relação ao modelo alvo: login, hash de senha e flag `ativo` ficam na tabela `auth_user` do Django, e `UsuarioSistema` guarda os dados comuns.
+Reflete `cadastros/models.py` e a migração `0001_initial` da Sprint 03. A diferença principal em relação ao modelo alvo: login, hash de senha e flag `ativo` ficam na tabela `auth_user` do Django, e `UsuarioSistema` guarda os dados comuns. As entidades adicionadas depois (professor, distribuição, vantagem, resgate, cupom e notificação) seguem o modelo alvo da seção 6.1 e estão nas migrações 0002 e 0003.
 
 ```mermaid
 erDiagram
@@ -687,7 +689,7 @@ flowchart TB
 
         subgraph persistence["Camada de Persistência"]
             repositories["Django ORM (models.py)"]
-            db[("Banco Relacional (SQLite)")]
+            db[("Banco Relacional (SQLite / PostgreSQL)")]
         end
     end
 
@@ -746,14 +748,18 @@ flowchart TB
 | Requisito | Situação no código | Observação |
 | --- | --- | --- |
 | RF01 Cadastro de aluno | Implementado | CRUD completo, validação de CPF/RG, conta criada com saldo 0. |
-| RF02 Instituições e professores | Parcial | Instituições editáveis pelo admin; **professores ainda não existem no código**. |
+| RF02 Instituições e professores | Implementado | Instituições no Django Admin; professores pré-cadastrados pelo administrador, vinculados à instituição. |
 | RF03 Cadastro de empresa | Implementado | CRUD completo. |
-| RF04 Autenticação | Implementado | Login/logout via `django.contrib.auth`; perfis de aluno e empresa. |
-| RF05 a RF07 | Pendente | Crédito semestral, distribuição de moedas e e-mail. |
-| RF08 | Pendente | `ContaMoeda` existe, mas não há extrato nem transações. |
-| RF09 a RF12 | Pendente | Vantagens, resgate, cupom e e-mails. |
+| RF04 Autenticação | Implementado | Login/logout via `django.contrib.auth`; perfis de aluno, professor e empresa. |
+| RF05 Crédito semestral | Implementado | Comando `creditar_semestre`, 1.000 moedas acumuláveis, uma vez por semestre. |
+| RF06 Distribuição de moedas | Implementado | Valor positivo, motivo obrigatório, débito e crédito atômicos. |
+| RF07 Notificação por e-mail | Implementado | Notificações persistidas, enviadas após o commit; falhas podem ser reenviadas (`reenviar_emails`). |
+| RF08 Saldo e extrato | Implementado | Extrato próprio de aluno e de professor. |
+| RF09 Cadastro de vantagens | Implementado | Descrição, URL da foto, custo positivo e estado ativo. |
+| RF10 Consulta de vantagens | Implementado | Catálogo de vantagens ativas para alunos. |
+| RF11, RF12 Resgate e cupom | Implementado | Débito atômico, custo histórico, código de cupom único enviado ao aluno e à empresa. |
 
-O Diagrama ER da seção 6.1 e o Diagrama de Classes descrevem o **modelo alvo**; a seção 6.2 mostra o que está no banco hoje.
+O Diagrama ER da seção 6.1 e o Diagrama de Classes descrevem o **modelo alvo**; a seção 6.2 mostra o estado da Sprint 03 e os modelos atuais estão em `cadastros/models.py`.
 
 ---
 
@@ -764,6 +770,77 @@ O Diagrama ER da seção 6.1 e o Diagrama de Classes descrevem o **modelo alvo**
 - [x] CRUDs de Aluno e Empresa Parceira integrados com front-end (HTML/CSS) e back-end.
 - [x] Arquitetura em camadas (MVT + camada de serviços em `services.py`) implementada.
 - [x] Script de carga inicial (`preparar_demo`) funcional.
-- [ ] CRUD de Professor e vínculo com instituição (RF02), a implementar.
+- [x] CRUD de Professor e vínculo com instituição (RF02), entregue no Lab04S01.
 - [ ] Validar com a professora as premissas de Administrador e Agendador Semestral.
-- [ ] Mover `SECRET_KEY` e `DEBUG` para variáveis de ambiente antes de qualquer deploy.
+- [x] Mover `SECRET_KEY` e `DEBUG` para variáveis de ambiente antes de qualquer deploy (feito no Lab04S02).
+
+---
+
+## 14. Lab04S01: diagramas de sequência e casos de uso restantes
+
+Entrega: diagramas de sequência, diagrama de visão geral de interação e implementação dos casos de uso que faltavam. A documentação completa e os diagramas (`.puml` e `.svg`) estão em [`docs/lab04s01`](docs/lab04s01/README.md).
+
+| Caso | Implementação |
+| --- | --- |
+| UC05 | Pré-cadastro de professor pelo administrador, com vínculo à instituição e conta de moedas. |
+| UC06 | Comando `creditar_semestre`: 1.000 moedas por professor ativo, uma vez por semestre. |
+| UC07 | Distribuição com valor positivo, motivo obrigatório e débito/crédito atômicos. |
+| UC08 | Extrato próprio de aluno ou professor. |
+| UC09, UC10 | Cadastro de vantagens pela empresa e catálogo para o aluno. |
+| UC11, UC12 | Resgate com débito atômico e cupom com código único. |
+| UC13 | Notificações por e-mail persistidas, com reenvio em caso de falha. |
+
+Os testes automatizados (22 testes) passam com `python manage.py test`.
+
+---
+
+## 15. Lab04S02: diagrama de implantação e deploy
+
+Entrega: diagrama de implantação UML e preparo da aplicação para a nuvem. A interface gráfica já existe (templates Django), então não houve desenvolvimento adicional de telas.
+
+![Diagrama de implantação](docs/lab04s02/10_implantacao.svg)
+
+Fonte editável: [`10_implantacao.puml`](docs/lab04s02/10_implantacao.puml).
+
+### Nós da implantação
+
+| Nó | Tecnologia | Função |
+| --- | --- | --- |
+| Navegador | HTML/CSS (templates Django) | Interface de aluno, professor e empresa |
+| Render Web Service | Python + gunicorn + WhiteNoise | Aplicação Django (MVT) e arquivos estáticos |
+| Render PostgreSQL | PostgreSQL gerenciado | Persistência (ORM do Django) |
+| Provedor de e-mail | API HTTP (Resend ou Brevo) | Avisos de moeda, cupom do aluno e aviso ao parceiro |
+| Máquina do administrador | `manage.py` | Crédito semestral e carga inicial (execução manual) |
+| GitHub | Repositório + `render.yaml` | Origem do deploy automático |
+
+A Vercel não é usada: a interface é renderizada pelo próprio Django (arquitetura MVT), então não existe front-end separado para hospedar lá.
+
+### Mudanças no projeto
+
+- `config/settings.py`: `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS` e `DATABASE_URL` vêm do ambiente; WhiteNoise serve os arquivos estáticos; cookies seguros quando `DEBUG` está desligado. Sem variáveis de ambiente, tudo continua como antes (SQLite e e-mail no console).
+- `requirements.txt`: `gunicorn`, `whitenoise`, `dj-database-url`, `psycopg` e `django-anymail`.
+- `render.yaml`: cria o web service e o banco no Render (Blueprint).
+
+### Deploy no Render
+
+1. No Render: **New > Blueprint** e selecione este repositório.
+2. No serviço, preencha `EMAIL_BACKEND` e a chave de API do provedor de e-mail (`RESEND_API_KEY` ou `BREVO_API_KEY`).
+3. O plano gratuito não oferece Shell. Para criar as contas iniciais, rode na máquina local com `DATABASE_URL` apontando para a External Database URL do banco:
+
+```powershell
+$env:DATABASE_URL = "COLE_AQUI_A_EXTERNAL_DATABASE_URL"
+python manage.py preparar_demo --senha SUA_SENHA
+```
+
+4. **Link da aplicação:** (colar aqui)
+
+### Variáveis de ambiente
+
+`SECRET_KEY`, `DEBUG`, `DATABASE_URL`, `ALLOWED_HOSTS` (opcional), `DEFAULT_FROM_EMAIL`, `EMAIL_BACKEND`, `RESEND_API_KEY` ou `BREVO_API_KEY`.
+
+### Limitações do plano gratuito
+
+- O Render bloqueia SMTP de saída (portas 25, 465 e 587), por isso o e-mail usa API HTTP.
+- O serviço dorme após 15 minutos sem acesso e leva cerca de 1 minuto para acordar.
+- Cron Job e Shell não estão disponíveis, então o crédito semestral é executado manualmente.
+- O banco PostgreSQL gratuito tem prazo de validade; conferir a data ao criá-lo.S
