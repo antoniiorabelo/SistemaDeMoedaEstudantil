@@ -14,7 +14,13 @@
       {% if user.is_staff %}
         <a href="{% url 'lista' 'alunos' %}">Alunos</a>
         <a href="{% url 'lista' 'empresas' %}">Empresas</a>
+        <a href="{% url 'lista' 'professores' %}">Professores</a>
         <a href="{% url 'admin:cadastros_instituicaoensino_changelist' %}">Instituições</a>
+      {% endif %}
+      {% if user.is_authenticated and not user.is_staff %}
+        {% if user.cadastro.tipo == 'aluno' %}<a href="{% url 'catalogo' %}">Vantagens</a><a href="{% url 'extrato' %}">Extrato</a>{% endif %}
+        {% if user.cadastro.tipo == 'professor' %}<a href="{% url 'distribuir' %}">Distribuir</a><a href="{% url 'extrato' %}">Extrato</a>{% endif %}
+        {% if user.cadastro.tipo == 'empresa' %}<a href="{% url 'minhas_vantagens' %}">Minhas vantagens</a>{% endif %}
       {% endif %}
       {% if user.is_authenticated %}
         <span class="user-name">{{ user.username }}</span>

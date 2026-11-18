@@ -1,0 +1,6 @@
+{% extends 'cadastros/base.html' %}
+{% block title %}Resgatar vantagem · Moeda Estudantil{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'catalogo' %}">← Voltar ao catálogo</a>
+<section class="panel narrow"><span class="eyebrow">CONFIRMAR RESGATE</span><h1>{{ vantagem.descricao }}</h1><p>Empresa: {{ vantagem.empresa.usuario.nome }}</p><p>Custo: <strong>{{ vantagem.custo_moedas }} moedas</strong></p><p>Seu saldo: {{ saldo }} moedas</p><form method="post">{% csrf_token %}<div class="form-actions"><a href="{% url 'catalogo' %}">Cancelar</a><button class="button" type="submit">Confirmar resgate</button></div></form></section>
+{% endblock %}

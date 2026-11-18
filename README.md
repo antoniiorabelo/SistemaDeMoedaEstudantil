@@ -1,5 +1,7 @@
 # Lab03S03 - Sistema de Moeda Estudantil (Arquitetura e Persistência)
 
+> **Sprint 04:** [Lab04S01 — diagramas de sequência, visão geral de interação e casos de uso restantes](docs/lab04s01/README.md). As seções abaixo registram a situação da Sprint 03.
+
 **Disciplina:** Projeto de Software
 
 **Sprint:** 03 - CRUDs Finais, Arquitetura do Sistema e Camada de Persistência

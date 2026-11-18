@@ -1,0 +1,39 @@
+@startuml
+!pragma layout smetana
+title Diagrama de Visão Geral de Interação - Moeda Estudantil
+start
+if (Gatilho?) then (novo semestre)
+  :ref UC06\nCrédito semestral;
+else (acesso web)
+  if (Novo participante?) then (sim)
+    if (Instituição necessária e ausente?) then (sim)
+      :ref UC04\nManter instituição;
+    endif
+    :ref UC01/UC02/UC05\nCadastro de participante;
+  endif
+  :ref UC03\nAutenticação;
+  if (Qual perfil?) then (Professor)
+  :ref UC07\nDistribuir moedas;
+  if (Saldo suficiente?) then (sim)
+    :ref UC13\nNotificar aluno;
+  else (não)
+    :Informar falha sem alterar saldos;
+  endif
+  :ref UC08\nConsultar saldo e extrato;
+  elseif (Aluno) then (Aluno)
+  :ref UC10\nConsultar vantagens ativas;
+  :ref UC11\nResgatar vantagem;
+  if (Ativa e saldo suficiente?) then (sim)
+    :ref UC12\nGerar cupom único;
+    :ref UC13\nNotificar aluno e empresa;
+  else (não)
+    :Informar falha sem débito;
+  endif
+  :ref UC08\nConsultar saldo e extrato;
+  else (Empresa)
+  :ref UC09\nCadastrar ou editar vantagem;
+  :Consultar cupons emitidos;
+  endif
+endif
+stop
+@enduml

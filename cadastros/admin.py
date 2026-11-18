@@ -1,6 +1,8 @@
 from django.contrib import admin
 
-from .models import Aluno, ContaMoeda, EmpresaParceira, InstituicaoEnsino, UsuarioSistema
+from .models import (Aluno, ContaMoeda, CreditoSemestral, DistribuicaoMoedas,
+                     EmpresaParceira, InstituicaoEnsino, NotificacaoEmail, Professor, Resgate,
+                     UsuarioSistema, Vantagem)
 
 
 @admin.register(InstituicaoEnsino)
@@ -35,4 +37,10 @@ class EmpresaAdmin(ConsultaAdmin):
 
 admin.site.register(UsuarioSistema, ConsultaAdmin)
 admin.site.register(ContaMoeda, ConsultaAdmin)
+admin.site.register(Professor, ConsultaAdmin)
+admin.site.register(CreditoSemestral, ConsultaAdmin)
+admin.site.register(DistribuicaoMoedas, ConsultaAdmin)
+admin.site.register(Vantagem, ConsultaAdmin)
+admin.site.register(Resgate, ConsultaAdmin)
+admin.site.register(NotificacaoEmail, ConsultaAdmin)
 admin.site.site_header = 'Moeda Estudantil · Administração'

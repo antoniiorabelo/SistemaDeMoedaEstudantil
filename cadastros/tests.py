@@ -3,13 +3,17 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
+from django.core import mail
 from django.db import IntegrityError, transaction
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from .forms import AlunoForm
-from .models import Aluno, ContaMoeda, EmpresaParceira, InstituicaoEnsino, UsuarioSistema
-from .services import salvar_cadastro
+from .models import (Aluno, ContaMoeda, CreditoSemestral, DistribuicaoMoedas,
+                     EmpresaParceira, InstituicaoEnsino, NotificacaoEmail, Professor, Resgate,
+                     UsuarioSistema, Vantagem)
+from .services import (SaldoInsuficiente, creditar_semestre, distribuir_moedas,
+                       resgatar_vantagem, salvar_cadastro)
 
 User = get_user_model()
 SENHA = 'UmaSenha!Academica2026'
@@ -191,3 +195,148 @@ class CadastroTests(TestCase):
         self.assertEqual(EmpresaParceira.objects.count(), 1)
         self.assertTrue(User.objects.get(username='admin_demo').check_password(SENHA))
         self.assertTrue(User.objects.get(username='aluno_demo').check_password(SENHA))
+
+
+@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+class OperacoesTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.instituicao = InstituicaoEnsino.objects.create(nome='Campus')
+        cls.admin = User.objects.create_superuser('admin', 'admin@example.com', SENHA)
+        cls.aluno_user = User.objects.create_user('aluno', 'aluno@example.com', SENHA)
+        cls.prof_user = User.objects.create_user('prof', 'prof@example.com', SENHA)
+        cls.empresa_user = User.objects.create_user('empresa', 'empresa@example.com', SENHA)
+        cls.outro_user = User.objects.create_user('outra', 'outra@example.com', SENHA)
+        cls.aluno = Aluno.objects.create(
+            usuario=UsuarioSistema.objects.create(user=cls.aluno_user, nome='Aluno', email='aluno@example.com', tipo='aluno'),
+            cpf='52998224725', rg='123456789', endereco='Rua A', instituicao=cls.instituicao, curso='Computação')
+        cls.outro = Aluno.objects.create(
+            usuario=UsuarioSistema.objects.create(user=cls.outro_user, nome='Outra', email='outra@example.com', tipo='aluno'),
+            cpf='11144477735', rg='987654321', endereco='Rua B', instituicao=cls.instituicao, curso='Engenharia')
+        cls.professor = Professor.objects.create(
+            usuario=UsuarioSistema.objects.create(user=cls.prof_user, nome='Professor', email='prof@example.com', tipo='professor'),
+            cpf='39053344705', departamento='Computação', instituicao=cls.instituicao)
+        cls.empresa = EmpresaParceira.objects.create(
+            usuario=UsuarioSistema.objects.create(user=cls.empresa_user, nome='Empresa', email='empresa@example.com', tipo='empresa'))
+        ContaMoeda.objects.create(aluno=cls.aluno)
+        ContaMoeda.objects.create(aluno=cls.outro)
+        ContaMoeda.objects.create(professor=cls.professor)
+        cls.vantagem = Vantagem.objects.create(
+            empresa=cls.empresa, descricao='Livro', foto_url='https://example.com/livro.jpg', custo_moedas=120)
+
+    def test_pre_cadastro_professor_restrito_ao_admin(self):
+        url = reverse('criar', args=['professores'])
+        self.assertEqual(self.client.get(url).status_code, 403)
+        self.client.force_login(self.admin)
+        data = dict(nome='Novo professor', email='novo@example.com', username='novo', senha=SENHA,
+                    confirmar_senha=SENHA, cpf='123.456.789-09', departamento='Matemática', instituicao=self.instituicao.pk)
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 302)
+        novo = Professor.objects.get(usuario__user__username='novo')
+        self.assertEqual(novo.conta.saldo, 0)
+        self.assertEqual(novo.instituicao, self.instituicao)
+
+    def test_credito_semestral_acumula_e_nao_duplica(self):
+        self.assertEqual(creditar_semestre('2026.2'), 1)
+        self.assertEqual(creditar_semestre('2026.2'), 0)
+        self.assertEqual(creditar_semestre('2027.1'), 1)
+        self.professor.conta.refresh_from_db()
+        self.assertEqual(self.professor.conta.saldo, 2000)
+        self.assertEqual(CreditoSemestral.objects.count(), 2)
+
+    def test_distribuicao_atomica_e_email_apos_commit(self):
+        creditar_semestre('2026.2')
+        with self.captureOnCommitCallbacks(execute=True):
+            distribuicao = distribuir_moedas(self.professor, self.aluno, 150, 'Mérito acadêmico')
+        self.professor.conta.refresh_from_db()
+        self.aluno.conta.refresh_from_db()
+        self.assertEqual((self.professor.conta.saldo, self.aluno.conta.saldo), (850, 150))
+        self.assertEqual(distribuicao.motivo, 'Mérito acadêmico')
+        self.assertEqual(mail.outbox[-1].to, ['aluno@example.com'])
+        with self.assertRaises(SaldoInsuficiente):
+            distribuir_moedas(self.professor, self.aluno, 9999, 'Mais moedas')
+        self.assertEqual(DistribuicaoMoedas.objects.count(), 1)
+
+    def test_resgate_debita_uma_vez_gera_cupom_e_notifica_ambos(self):
+        ContaMoeda.objects.filter(aluno=self.aluno).update(saldo=200)
+        with self.captureOnCommitCallbacks(execute=True):
+            resgate = resgatar_vantagem(self.aluno, self.vantagem)
+        self.aluno.conta.refresh_from_db()
+        self.assertEqual(self.aluno.conta.saldo, 80)
+        self.assertEqual(resgate.custo_registrado, 120)
+        self.assertEqual(len(resgate.codigo_cupom), 32)
+        self.assertCountEqual([item.to[0] for item in mail.outbox[-2:]], ['aluno@example.com', 'empresa@example.com'])
+        self.assertTrue(all(resgate.codigo_cupom in item.body for item in mail.outbox[-2:]))
+        self.assertEqual(resgate.notificacoes.filter(status=NotificacaoEmail.Status.ENVIADA).count(), 2)
+        with self.assertRaises(SaldoInsuficiente):
+            resgatar_vantagem(self.aluno, self.vantagem)
+        self.assertEqual(Resgate.objects.count(), 1)
+
+    def test_permissoes_e_telas_dos_perfis(self):
+        self.client.force_login(self.prof_user)
+        self.assertEqual(self.client.get(reverse('distribuir')).status_code, 200)
+        self.assertEqual(self.client.get(reverse('extrato')).status_code, 200)
+        self.assertEqual(self.client.get(reverse('catalogo')).status_code, 403)
+        self.client.force_login(self.empresa_user)
+        self.assertEqual(self.client.get(reverse('minhas_vantagens')).status_code, 200)
+        self.assertEqual(self.client.get(reverse('distribuir')).status_code, 403)
+        self.client.force_login(self.aluno_user)
+        self.assertEqual(self.client.get(reverse('catalogo')).status_code, 200)
+        self.assertEqual(self.client.get(reverse('extrato')).status_code, 200)
+        self.assertEqual(self.client.get(reverse('minhas_vantagens')).status_code, 403)
+
+    def test_vantagem_pertence_a_empresa_e_resgate_so_por_post(self):
+        self.client.force_login(self.aluno_user)
+        url = reverse('resgatar', args=[self.vantagem.pk])
+        self.assertEqual(self.client.get(url).status_code, 200)
+        self.assertFalse(Resgate.objects.exists())
+        self.assertEqual(self.client.post(url).status_code, 200)
+        self.assertFalse(Resgate.objects.exists())
+        self.client.force_login(self.empresa_user)
+        self.assertEqual(self.client.get(reverse('vantagem_editar', args=[self.vantagem.pk])).status_code, 200)
+        self.client.force_login(self.outro_user)
+        self.assertEqual(self.client.get(reverse('vantagem_editar', args=[self.vantagem.pk])).status_code, 403)
+
+    def test_email_com_falha_fica_registrado_para_reenvio(self):
+        creditar_semestre('2026.2')
+        with patch('cadastros.services.send_mail', side_effect=OSError('servidor indisponível')):
+            with patch('cadastros.services.logger.exception'):
+                with self.captureOnCommitCallbacks(execute=True):
+                    distribuir_moedas(self.professor, self.aluno, 10, 'Participação')
+        aviso = NotificacaoEmail.objects.get()
+        self.assertEqual(aviso.status, NotificacaoEmail.Status.ERRO)
+        self.assertEqual(aviso.tentativas, 1)
+        call_command('reenviar_emails', stdout=StringIO())
+        aviso.refresh_from_db()
+        self.assertEqual(aviso.status, NotificacaoEmail.Status.ENVIADA)
+        self.assertEqual(aviso.tentativas, 2)
+        self.assertEqual(mail.outbox[-1].to, ['aluno@example.com'])
+
+    def test_empresa_cadastra_vantagem_e_aluno_resgata_pela_interface(self):
+        self.client.force_login(self.empresa_user)
+        response = self.client.post(reverse('vantagem_criar'), {
+            'descricao': 'Ingresso', 'foto_url': 'https://example.com/ingresso.jpg',
+            'custo_moedas': 90, 'ativa': 'on',
+        })
+        self.assertRedirects(response, reverse('minhas_vantagens'))
+        item = Vantagem.objects.get(descricao='Ingresso')
+        self.assertEqual(item.empresa, self.empresa)
+        ContaMoeda.objects.filter(aluno=self.aluno).update(saldo=100)
+        self.client.force_login(self.aluno_user)
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(reverse('resgatar', args=[item.pk]))
+        resgate = Resgate.objects.get(vantagem=item)
+        self.assertRedirects(response, reverse('cupom', args=[resgate.pk]))
+        self.assertContains(self.client.get(reverse('cupom', args=[resgate.pk])), resgate.codigo_cupom)
+        self.aluno.conta.refresh_from_db()
+        self.assertEqual(self.aluno.conta.saldo, 10)
+        self.client.force_login(self.outro_user)
+        self.assertEqual(self.client.get(reverse('cupom', args=[resgate.pk])).status_code, 404)
+
+    def test_vantagem_inativa_fica_fora_do_catalogo_e_nao_resgata(self):
+        self.vantagem.ativa = False
+        self.vantagem.save(update_fields=['ativa'])
+        self.client.force_login(self.aluno_user)
+        self.assertNotContains(self.client.get(reverse('catalogo')), 'Livro')
+        self.assertEqual(self.client.post(reverse('resgatar', args=[self.vantagem.pk])).status_code, 404)
+        self.assertFalse(Resgate.objects.exists())

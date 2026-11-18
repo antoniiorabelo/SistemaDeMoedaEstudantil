@@ -1,0 +1,6 @@
+{% extends 'cadastros/base.html' %}
+{% block title %}Vantagens · Moeda Estudantil{% endblock %}
+{% block content %}
+<div class="page-heading"><span class="eyebrow">CATÁLOGO</span><h1>Vantagens disponíveis</h1><p>Seu saldo: {{ saldo }} moedas.</p></div>
+<div class="cards">{% for item in vantagens %}<article class="card"><img class="advantage-photo" src="{{ item.foto_url }}" alt="Foto da vantagem {{ item.descricao }}"><span class="eyebrow">{{ item.empresa.usuario.nome }}</span><h2>{{ item.descricao }}</h2><p>{{ item.custo_moedas }} moedas</p><a class="button" href="{% url 'resgatar' item.pk %}">Ver resgate →</a></article>{% empty %}<section class="panel"><p>Nenhuma vantagem disponível no momento.</p></section>{% endfor %}</div>
+{% endblock %}

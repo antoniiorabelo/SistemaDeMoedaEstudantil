@@ -1,0 +1,10 @@
+{% extends 'cadastros/base.html' %}
+{% block title %}Vantagem · Moeda Estudantil{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'minhas_vantagens' %}">← Voltar às vantagens</a>
+<div class="page-heading"><span class="eyebrow">EMPRESA PARCEIRA</span><h1>{% if vantagem %}Editar vantagem{% else %}Nova vantagem{% endif %}</h1><p>Informe uma foto por URL, a descrição e o custo em moedas.</p></div>
+<form method="post" class="panel narrow form-panel" novalidate>{% csrf_token %}
+{% if form.non_field_errors %}<div class="message error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+{% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}</div>{% endfor %}
+<div class="form-actions"><a href="{% url 'minhas_vantagens' %}">Cancelar</a><button type="submit" class="button">Salvar vantagem</button></div></form>
+{% endblock %}

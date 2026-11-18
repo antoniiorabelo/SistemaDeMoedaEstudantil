@@ -1,0 +1,28 @@
+@startuml
+title UC09 e UC10 - Cadastrar e consultar vantagens
+actor "Empresa parceira" as Empresa
+actor "Aluno" as Aluno
+boundary "Telas de vantagens" as Tela
+control "operacoes" as View
+control "VantagemForm" as Form
+database "Django ORM / SQLite" as Banco
+Empresa -> Tela : informa descrição, URL da foto, custo e situação
+Tela -> View : POST /minhas-vantagens/nova/
+View -> View : verifica empresa autenticada
+View -> Form : valida dados e custo positivo
+alt dados inválidos
+  Form --> View : erros
+  View --> Tela : exibe formulário com erros
+else dados válidos
+  Form --> View : vantagem válida
+  View -> Banco : salva vantagem vinculada à empresa
+  Banco --> View : vantagem salva
+  View --> Tela : lista vantagens da empresa
+end
+Aluno -> Tela : consulta catálogo
+Tela -> View : GET /vantagens/
+View -> View : verifica aluno autenticado
+View -> Banco : busca vantagens ativas
+Banco --> View : descrição, foto, empresa e custo
+View --> Tela : catálogo e saldo do aluno
+@enduml

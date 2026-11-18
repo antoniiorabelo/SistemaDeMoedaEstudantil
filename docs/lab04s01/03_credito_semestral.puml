@@ -1,0 +1,26 @@
+@startuml
+title UC06 - Creditar 1.000 moedas por semestre
+actor "Agendador / Operador" as Agente
+control "creditar_semestre (comando)" as Comando
+control "serviço creditar_semestre" as Servico
+database "Django ORM / SQLite" as Banco
+Agente -> Comando : executar com semestre AAAA.1 ou AAAA.2
+Comando -> Servico : creditar_semestre(semestre)
+alt formato inválido
+  Servico --> Comando : ValidationError
+  Comando --> Agente : informa formato esperado
+else formato válido
+  Servico -> Banco : BEGIN; buscar professores ativos
+  loop para cada professor ativo
+    Servico -> Banco : get_or_create(CreditoSemestral)
+    alt crédito novo
+      Servico -> Banco : saldo = saldo + 1000 (F expression)
+    else já creditado
+      Banco --> Servico : nenhuma alteração
+    end
+  end
+  Servico -> Banco : COMMIT
+  Servico --> Comando : número de professores creditados
+  Comando --> Agente : resultado da execução
+end
+@enduml

@@ -1,0 +1,9 @@
+{% extends 'cadastros/base.html' %}
+{% block title %}Minhas vantagens · Moeda Estudantil{% endblock %}
+{% block content %}
+<div class="heading-row"><div class="page-heading"><span class="eyebrow">EMPRESA PARCEIRA</span><h1>Minhas vantagens</h1><p>Gerencie os benefícios oferecidos aos alunos.</p></div><a class="button" href="{% url 'vantagem_criar' %}">+ Nova vantagem</a></div>
+<section class="panel"><h2>Vantagens cadastradas</h2>
+{% if vantagens %}<div class="table-wrap"><table><thead><tr><th>Descrição</th><th>Custo</th><th>Situação</th><th>Ação</th></tr></thead><tbody>{% for item in vantagens %}<tr><td>{{ item.descricao }}</td><td>{{ item.custo_moedas }} moedas</td><td>{% if item.ativa %}Disponível{% else %}Inativa{% endif %}</td><td><a href="{% url 'vantagem_editar' item.pk %}">Editar</a></td></tr>{% endfor %}</tbody></table></div>{% else %}<p>Nenhuma vantagem cadastrada.</p>{% endif %}</section>
+<section class="panel"><h2>Cupons emitidos</h2>
+{% if resgates %}<div class="table-wrap"><table><thead><tr><th>Data</th><th>Vantagem</th><th>Aluno</th><th>Cupom</th></tr></thead><tbody>{% for resgate in resgates %}<tr><td>{{ resgate.criado_em|date:'d/m/Y H:i' }}</td><td>{{ resgate.vantagem.descricao }}</td><td>{{ resgate.aluno.usuario.nome }}</td><td><strong>{{ resgate.codigo_cupom }}</strong></td></tr>{% endfor %}</tbody></table></div>{% else %}<p>Nenhum cupom emitido.</p>{% endif %}</section>
+{% endblock %}

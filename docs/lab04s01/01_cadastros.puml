@@ -1,0 +1,33 @@
+@startuml
+title UC01, UC02 e UC05 - Cadastros de aluno, empresa e professor
+actor "Aluno / Empresa / Administrador" as Ator
+boundary "Formulário web" as Tela
+control "views.formulario" as View
+control "CadastroForm" as Form
+control "salvar_cadastro" as Servico
+database "Django ORM / SQLite" as Banco
+Ator -> Tela : informa dados e credenciais
+Tela -> View : POST /<tipo>/novo/
+View -> Form : validar campos, CPF, login e e-mail
+alt dados inválidos ou duplicados
+  Form --> View : erros de validação
+  View --> Tela : exibe erros sem gravar
+else dados válidos
+  Form --> View : cleaned_data
+  View -> Servico : salvar_cadastro(form)
+  activate Servico
+  Servico -> Banco : BEGIN; salvar User e UsuarioSistema
+  Servico -> Banco : salvar perfil (Aluno/Empresa/Professor)
+  opt aluno ou professor
+    Servico -> Banco : criar ContaMoeda(saldo=0)
+  end
+  Servico -> Banco : COMMIT
+  Servico --> View : registro criado
+  deactivate Servico
+  View --> Tela : redireciona para login ou detalhe
+end
+note over Ator,View
+  O cadastro de professor exige sessão de administrador.
+  Instituições são mantidas pelo administrador no Django Admin (UC04).
+end note
+@enduml

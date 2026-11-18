@@ -1,0 +1,9 @@
+{% extends 'cadastros/base.html' %}
+{% block title %}Extrato · Moeda Estudantil{% endblock %}
+{% block content %}
+<div class="page-heading"><span class="eyebrow">CARTEIRA</span><h1>Saldo e extrato</h1><p>Movimentações da sua conta, da mais recente para a mais antiga.</p></div>
+<section class="panel"><h2>Saldo atual: {{ titular.conta.saldo }} moedas</h2>
+{% if movimentos %}<div class="table-wrap"><table><thead><tr><th>Data</th><th>Descrição</th><th>Moedas</th></tr></thead><tbody>
+{% for data, valor, descricao in movimentos %}<tr><td>{{ data|date:'d/m/Y H:i' }}</td><td>{{ descricao }}</td><td>{% if valor > 0 %}+{% endif %}{{ valor }}</td></tr>{% endfor %}
+</tbody></table></div>{% else %}<p>Nenhuma movimentação registrada.</p>{% endif %}</section>
+{% endblock %}

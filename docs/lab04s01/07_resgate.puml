@@ -1,0 +1,37 @@
+@startuml
+title UC11, UC12 e UC13 - Resgatar vantagem, gerar cupom e enviar e-mail
+actor "Aluno" as Aluno
+boundary "Tela Resgatar" as Tela
+control "operacoes.resgatar" as View
+control "resgatar_vantagem" as Servico
+database "Django ORM / SQLite" as Banco
+collections "Serviço de e-mail" as Email
+Aluno -> Tela : confirma resgate
+Tela -> View : POST /vantagens/{id}/resgatar/
+View -> View : verifica aluno autenticado
+View -> Servico : resgatar_vantagem(aluno, vantagem)
+Servico -> Banco : BEGIN; bloqueia e lê vantagem
+alt vantagem inativa
+  Banco --> Servico : inativa
+  Servico -> Banco : ROLLBACK
+  Servico --> View : ValidationError
+  View --> Tela : informa indisponibilidade
+else vantagem ativa
+  Servico -> Banco : débito condicional (saldo >= custo)
+  alt saldo insuficiente
+    Banco --> Servico : 0 linhas debitadas
+    Servico -> Banco : ROLLBACK
+    Servico --> View : SaldoInsuficiente
+    View --> Tela : informa saldo insuficiente
+  else saldo suficiente
+    Banco --> Servico : 1 linha debitada
+    Servico -> Banco : cria Resgate(custo registrado, cupom único)
+    Servico -> Banco : cria 2 NotificacaoEmail pendentes
+    Servico -> Banco : COMMIT
+    Servico -> Email : on_commit: mesmo código para aluno e empresa
+    Email -> Banco : marca enviada ou erro para reenvio
+    Servico --> View : resgate
+    View --> Tela : mostra cupom ao aluno
+  end
+end
+@enduml
